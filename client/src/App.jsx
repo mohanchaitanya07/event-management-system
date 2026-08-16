@@ -23,8 +23,6 @@ function App() {
       <main className="layout">
         <CreateEventForm />
         <EventsPanel />
-        <section className="card">Create Event goes here</section>
-        <section className="card">Events go here</section>
       </main>
     </div>
   );
