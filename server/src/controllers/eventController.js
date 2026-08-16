@@ -1,6 +1,8 @@
 import Event from "../models/Event.js";
 import { toUtcDate } from "../utils/time.js";
 import { validateEventPayload } from "../utils/validateEventPayload.js";
+import { buildChanges } from "../utils/buildChanges.js";
+import EventLog from "../models/EventLog.js";
 
 // get events
 export const getEvents = async (req, res, next) => {
@@ -79,15 +81,39 @@ export const updateEvent = async (req, res, next) => {
         .json({ message: "End time must be after start time" });
     }
 
+    const changes = buildChanges(event, {
+      profiles,
+      timezone,
+      startAt: startUtc,
+      endAt: endUtc,
+    });
+
     event.profiles = profiles;
     event.timezone = timezone;
     event.startAt = startUtc;
     event.endAt = endUtc;
 
     await event.save();
+
+    if (changes.length > 0) {
+      await EventLog.create({ event: event._id, changes });
+    }
+
     await event.populate("profiles", "name timezone");
 
     res.status(200).json(event);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getEventLogs = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const logs = await EventLog.find({ event: id }).sort({ createdAt: -1 });
+
+    res.status(200).json(logs);
   } catch (error) {
     next(error);
   }
